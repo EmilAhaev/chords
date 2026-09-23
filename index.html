@@ -7,17 +7,17 @@
 <style>
 :root{
   --bg:#f6f4f0; --card:#ffffff; --ink:#1c1a17; --sub:#6b6560;
-  --accent:#c2542e; --accent2:#2e6f5e; --steel:#2e6f5e; --line:#e4dfd6; --white-key:#fffdf9; --black-key:#1c1a17;
+  --accent:#c2542e; --accent2:#2e6f5e; --steel:#2e6f5e; --ghost:rgba(120,114,105,0.4); --line:#e4dfd6; --white-key:#fffdf9; --black-key:#1c1a17;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#151311; --card:#1e1b18; --ink:#f2ede6; --sub:#a89f93;
-    --accent:#e2764b; --accent2:#4fa88f; --steel:#4fa88f; --line:#332e29; --white-key:#e9e4db; --black-key:#0b0a09;
+    --accent:#e2764b; --accent2:#4fa88f; --steel:#4fa88f; --ghost:rgba(170,163,153,0.35); --line:#332e29; --white-key:#e9e4db; --black-key:#0b0a09;
   }
 }
 :root[data-theme="dark"]{
   --bg:#151311; --card:#1e1b18; --ink:#f2ede6; --sub:#a89f93;
-  --accent:#e2764b; --accent2:#4fa88f; --steel:#4fa88f; --line:#332e29; --white-key:#e9e4db; --black-key:#0b0a09;
+  --accent:#e2764b; --accent2:#4fa88f; --steel:#4fa88f; --ghost:rgba(170,163,153,0.35); --line:#332e29; --white-key:#e9e4db; --black-key:#0b0a09;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
@@ -62,6 +62,7 @@ button#go:active{opacity:.85;}
 .chordName .root{color:var(--accent);}
 .formula{color:var(--sub); font-size:1rem; margin:4px 0 20px;}
 .formula b{color:var(--accent2); font-weight:600;}
+.legend{color:var(--sub); font-size:.82rem; margin-top:10px; font-style:italic;}
 .pianoScroll{overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch;}
 svg{display:block;}
 .err{color:var(--accent); font-size:.95rem;}
@@ -92,41 +93,53 @@ const NOTE_BASE = {C:0,D:2,E:4,F:5,G:7,A:9,B:11,H:11};
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 const CHORDS = {
-  major:  {name:'мажор', degrees:['1','3','5'], semis:[0,4,7]},
-  m:      {name:'минор', degrees:['1','♭3','5'], semis:[0,3,7]},
-  5:      {name:'квинтаккорд (пауэр-аккорд)', degrees:['1','5'], semis:[0,7]},
-  dim:    {name:'уменьшённый', degrees:['1','♭3','♭5'], semis:[0,3,6]},
-  aug:    {name:'увеличенный', degrees:['1','3','♯5'], semis:[0,4,8]},
-  dim7:   {name:'уменьшённый септаккорд', degrees:['1','♭3','♭5','𝄫7'], semis:[0,3,6,9]},
-  m7b5:   {name:'полууменьшённый (м7♭5)', degrees:['1','♭3','♭5','♭7'], semis:[0,3,6,10]},
-  7:      {name:'доминантсептаккорд', degrees:['1','3','5','♭7'], semis:[0,4,7,10]},
-  maj7:   {name:'большой мажорный септаккорд', degrees:['1','3','5','7'], semis:[0,4,7,11]},
-  m7:     {name:'малый минорный септаккорд', degrees:['1','♭3','5','♭7'], semis:[0,3,7,10]},
-  6:      {name:'секстаккорд', degrees:['1','3','5','6'], semis:[0,4,7,9]},
-  m6:     {name:'минорный секстаккорд', degrees:['1','♭3','5','6'], semis:[0,3,7,9]},
-  '6/9':  {name:'6/9', degrees:['1','3','5','6','9'], semis:[0,4,7,9,14]},
-  sus2:   {name:'суспендированный 2', degrees:['1','2','5'], semis:[0,2,7]},
-  sus4:   {name:'суспендированный 4', degrees:['1','4','5'], semis:[0,5,7]},
-  '7sus4':{name:'доминант 7 sus4', degrees:['1','4','5','♭7'], semis:[0,5,7,10]},
-  add9:   {name:'add9', degrees:['1','3','5','9'], semis:[0,4,7,14]},
-  madd9:  {name:'минорный add9', degrees:['1','♭3','5','9'], semis:[0,3,7,14]},
-  add11:  {name:'add11', degrees:['1','3','5','11'], semis:[0,4,7,17]},
-  add2:   {name:'add2', degrees:['1','2','3','5'], semis:[0,2,4,7]},
-  9:      {name:'нонаккорд доминантовый', degrees:['1','3','5','♭7','9'], semis:[0,4,7,10,14]},
-  maj9:   {name:'большой мажорный нонаккорд', degrees:['1','3','5','7','9'], semis:[0,4,7,11,14]},
-  m9:     {name:'минорный нонаккорд', degrees:['1','♭3','5','♭7','9'], semis:[0,3,7,10,14]},
-  11:     {name:'ундецимаккорд доминантовый', degrees:['1','3','5','♭7','9','11'], semis:[0,4,7,10,14,17]},
-  m11:    {name:'минорный ундецимаккорд', degrees:['1','♭3','5','♭7','9','11'], semis:[0,3,7,10,14,17]},
-  13:     {name:'терцдецимаккорд доминантовый', degrees:['1','3','5','♭7','9','11','13'], semis:[0,4,7,10,14,17,21]},
-  m13:    {name:'минорный терцдецимаккорд', degrees:['1','♭3','5','♭7','9','11','13'], semis:[0,3,7,10,14,17,21]},
-  '7#5':  {name:'доминант 7♯5', degrees:['1','3','♯5','♭7'], semis:[0,4,8,10]},
-  '7b5':  {name:'доминант 7♭5', degrees:['1','3','♭5','♭7'], semis:[0,4,6,10]},
-  '7b9':  {name:'доминант 7♭9', degrees:['1','3','5','♭7','♭9'], semis:[0,4,7,10,13]},
-  '7#9':  {name:'доминант 7♯9', degrees:['1','3','5','♭7','♯9'], semis:[0,4,7,10,15]},
-  '7#11': {name:'доминант 7♯11', degrees:['1','3','5','♭7','♯11'], semis:[0,4,7,10,18]},
-  'maj7#5':{name:'мажорный 7♯5', degrees:['1','3','♯5','7'], semis:[0,4,8,11]},
-  'maj7b5':{name:'мажорный 7♭5', degrees:['1','3','♭5','7'], semis:[0,4,6,11]},
+  major:  {name:'мажор', degrees:['1','3','5'], semis:[0,4,7], base:'major'},
+  m:      {name:'минор', degrees:['1','♭3','5'], semis:[0,3,7], base:'minor'},
+  5:      {name:'квинтаккорд (пауэр-аккорд)', degrees:['1','5'], semis:[0,7], base:null},
+  dim:    {name:'уменьшённый', degrees:['1','♭3','♭5'], semis:[0,3,6], base:'minor'},
+  aug:    {name:'увеличенный', degrees:['1','3','♯5'], semis:[0,4,8], base:'major'},
+  dim7:   {name:'уменьшённый септаккорд', degrees:['1','♭3','♭5','𝄫7'], semis:[0,3,6,9], base:'minor'},
+  m7b5:   {name:'полууменьшённый (м7♭5)', degrees:['1','♭3','♭5','♭7'], semis:[0,3,6,10], base:'minor'},
+  7:      {name:'доминантсептаккорд', degrees:['1','3','5','♭7'], semis:[0,4,7,10], base:'major'},
+  maj7:   {name:'большой мажорный септаккорд', degrees:['1','3','5','7'], semis:[0,4,7,11], base:'major'},
+  m7:     {name:'малый минорный септаккорд', degrees:['1','♭3','5','♭7'], semis:[0,3,7,10], base:'minor'},
+  6:      {name:'секстаккорд', degrees:['1','3','5','6'], semis:[0,4,7,9], base:'major'},
+  m6:     {name:'минорный секстаккорд', degrees:['1','♭3','5','6'], semis:[0,3,7,9], base:'minor'},
+  '6/9':  {name:'6/9', degrees:['1','3','5','6','9'], semis:[0,4,7,9,14], base:'major'},
+  sus2:   {name:'суспендированный 2', degrees:['1','2','5'], semis:[0,2,7], base:'major'},
+  sus4:   {name:'суспендированный 4', degrees:['1','4','5'], semis:[0,5,7], base:'major'},
+  '7sus4':{name:'доминант 7 sus4', degrees:['1','4','5','♭7'], semis:[0,5,7,10], base:'major'},
+  add9:   {name:'add9', degrees:['1','3','5','9'], semis:[0,4,7,14], base:'major'},
+  madd9:  {name:'минорный add9', degrees:['1','♭3','5','9'], semis:[0,3,7,14], base:'minor'},
+  add11:  {name:'add11', degrees:['1','3','5','11'], semis:[0,4,7,17], base:'major'},
+  add2:   {name:'add2', degrees:['1','2','3','5'], semis:[0,2,4,7], base:'major'},
+  9:      {name:'нонаккорд доминантовый', degrees:['1','3','5','♭7','9'], semis:[0,4,7,10,14], base:'major'},
+  maj9:   {name:'большой мажорный нонаккорд', degrees:['1','3','5','7','9'], semis:[0,4,7,11,14], base:'major'},
+  m9:     {name:'минорный нонаккорд', degrees:['1','♭3','5','♭7','9'], semis:[0,3,7,10,14], base:'minor'},
+  11:     {name:'ундецимаккорд доминантовый', degrees:['1','3','5','♭7','9','11'], semis:[0,4,7,10,14,17], base:'major'},
+  m11:    {name:'минорный ундецимаккорд', degrees:['1','♭3','5','♭7','9','11'], semis:[0,3,7,10,14,17], base:'minor'},
+  13:     {name:'терцдецимаккорд доминантовый', degrees:['1','3','5','♭7','9','11','13'], semis:[0,4,7,10,14,17,21], base:'major'},
+  m13:    {name:'минорный терцдецимаккорд', degrees:['1','♭3','5','♭7','9','11','13'], semis:[0,3,7,10,14,17,21], base:'minor'},
+  '7#5':  {name:'доминант 7♯5', degrees:['1','3','♯5','♭7'], semis:[0,4,8,10], base:'major'},
+  '7b5':  {name:'доминант 7♭5', degrees:['1','3','♭5','♭7'], semis:[0,4,6,10], base:'major'},
+  '7b9':  {name:'доминант 7♭9', degrees:['1','3','5','♭7','♭9'], semis:[0,4,7,10,13], base:'major'},
+  '7#9':  {name:'доминант 7♯9', degrees:['1','3','5','♭7','♯9'], semis:[0,4,7,10,15], base:'major'},
+  '7#11': {name:'доминант 7♯11', degrees:['1','3','5','♭7','♯11'], semis:[0,4,7,10,18], base:'major'},
+  'maj7#5':{name:'мажорный 7♯5', degrees:['1','3','♯5','7'], semis:[0,4,8,11], base:'major'},
+  'maj7b5':{name:'мажорный 7♭5', degrees:['1','3','♭5','7'], semis:[0,4,6,11], base:'major'},
 };
+
+function getGhosts(chord){
+  if(!chord.base) return [];
+  const triad = chord.base==='major' ? [{sem:4,label:'3'},{sem:7,label:'5'}] : [{sem:3,label:'♭3'},{sem:7,label:'5'}];
+  return triad.filter(t=>!chord.semis.includes(t.sem));
+}
+
+function isAltered(chord, sem, label){
+  if(!chord.base) return false;
+  const triadSemis = chord.base==='major' ? [0,4,7] : [0,3,7];
+  return !triadSemis.includes(sem);
+}
 
 const AMBIGUOUS = {
   'm':'m','M':'major','-':'m',
@@ -208,14 +221,16 @@ function parseChord(raw){
   return {rootIndex, rootLabel, chord:CHORDS[key], key};
 }
 
-function buildPianoSVG(rootIndex, semis, degrees){
+function buildPianoSVG(rootIndex, chord, ghosts){
   const OCTAVES = 3, WHITE_W = 26, WHITE_H = 115, BLACK_W = 16, BLACK_H = 70;
   const whiteOrderInOct = {0:0,2:1,4:2,5:3,7:4,9:5,11:6};
   const blackAfterWhite = {1:1,3:2,6:4,8:5,10:6};
   const totalWhite = OCTAVES*7;
   const svgW = totalWhite*WHITE_W, svgH = WHITE_H+34;
   const chordSet = {};
-  semis.forEach((s,i)=>{ chordSet[rootIndex+s] = degrees[i]; });
+  chord.semis.forEach((s,i)=>{ chordSet[rootIndex+s] = {label:chord.degrees[i], sem:s}; });
+  const ghostSet = {};
+  (ghosts||[]).forEach(g=>{ ghostSet[rootIndex+g.sem] = g.label; });
   let whites='', blacks='', labels='';
   for(let oct=0; oct<OCTAVES; oct++){
     for(let pc of [0,2,4,5,7,9,11]){
@@ -223,12 +238,15 @@ function buildPianoSVG(rootIndex, semis, degrees){
       const wi = oct*7 + whiteOrderInOct[pc];
       const x = wi*WHITE_W;
       const hit = chordSet[pos];
-      const altered = hit && /[♭♯𝄫]/.test(hit);
-      const fill = hit ? (altered ? 'var(--accent)' : 'var(--steel)') : 'var(--white-key)';
+      const ghost = !hit && ghostSet[pos];
+      const altered = hit && isAltered(chord, hit.sem, hit.label);
+      const fill = hit ? (altered ? 'var(--accent)' : 'var(--steel)') : (ghost ? 'var(--ghost)' : 'var(--white-key)');
       whites += `<rect x="${x}" y="0" width="${WHITE_W-1}" height="${WHITE_H}" rx="4" fill="${fill}" stroke="var(--line)" stroke-width="1"/>`;
       if(hit){
-        labels += `<text x="${x+WHITE_W/2}" y="${WHITE_H-13}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Georgia,serif">${hit}</text>`;
+        labels += `<text x="${x+WHITE_W/2}" y="${WHITE_H-13}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Georgia,serif">${hit.label}</text>`;
         labels += `<text x="${x+WHITE_W/2}" y="${WHITE_H-2}" text-anchor="middle" font-size="7" fill="#fff" font-family="Georgia,serif">${NOTE_NAMES[pos%12]}</text>`;
+      } else if(ghost){
+        labels += `<text x="${x+WHITE_W/2}" y="${WHITE_H-13}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" opacity="0.65" font-family="Georgia,serif">${ghost}</text>`;
       }
     }
     for(let pc of [1,3,6,8,10]){
@@ -236,12 +254,15 @@ function buildPianoSVG(rootIndex, semis, degrees){
       const wi = oct*7 + blackAfterWhite[pc];
       const x = wi*WHITE_W - BLACK_W/2;
       const hit = chordSet[pos];
-      const altered = hit && /[♭♯𝄫]/.test(hit);
-      const fill = hit ? (altered ? 'var(--accent)' : 'var(--steel)') : 'var(--black-key)';
+      const ghost = !hit && ghostSet[pos];
+      const altered = hit && isAltered(chord, hit.sem, hit.label);
+      const fill = hit ? (altered ? 'var(--accent)' : 'var(--steel)') : (ghost ? 'var(--ghost)' : 'var(--black-key)');
       blacks += `<rect x="${x}" y="0" width="${BLACK_W}" height="${BLACK_H}" rx="3" fill="${fill}"/>`;
       if(hit){
-        blacks += `<text x="${x+BLACK_W/2}" y="${BLACK_H-18}" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="Georgia,serif">${hit}</text>`;
+        blacks += `<text x="${x+BLACK_W/2}" y="${BLACK_H-18}" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="Georgia,serif">${hit.label}</text>`;
         blacks += `<text x="${x+BLACK_W/2}" y="${BLACK_H-8}" text-anchor="middle" font-size="6.5" fill="#fff" font-family="Georgia,serif">${NOTE_NAMES[pos%12]}</text>`;
+      } else if(ghost){
+        blacks += `<text x="${x+BLACK_W/2}" y="${BLACK_H-18}" text-anchor="middle" font-size="8" font-weight="700" fill="var(--ink)" opacity="0.7" font-family="Georgia,serif">${ghost}</text>`;
       }
     }
   }
@@ -260,20 +281,25 @@ function render(raw){
     return;
   }
   const {rootIndex, rootLabel, chord} = parsed;
-  const svg = buildPianoSVG(rootIndex, chord.semis, chord.degrees);
-  const formula = chord.degrees.map(d=>{
-    const altered = /[♭♯𝄫]/.test(d);
+  const ghosts = getGhosts(chord);
+  const svg = buildPianoSVG(rootIndex, chord, ghosts);
+  const formula = chord.degrees.map((d,i)=>{
+    const altered = isAltered(chord, chord.semis[i], d);
     return `<b style="color:${altered?'var(--accent)':'var(--steel)'}">${d}</b>`;
   }).join(' — ');
   const notesHtml = chord.semis.map((s,i)=>{
     const noteName = NOTE_NAMES[(rootIndex+s)%12];
-    const altered = /[♭♯𝄫]/.test(chord.degrees[i]);
+    const altered = isAltered(chord, s, chord.degrees[i]);
     return `<span class="noteTag"><b style="color:${altered?'var(--accent)':'var(--steel)'}">${chord.degrees[i]}</b> = ${noteName}</span>`;
   }).join('');
+  const legend = ghosts.length
+    ? `<div class="legend">Серым — исходная ступень ${chord.base==='major'?'мажорного':'минорного'} трезвучия, от которой отличается этот аккорд.</div>`
+    : '';
   result.innerHTML = `
     <div class="chordName"><span class="root">${rootLabel}</span> — ${chord.name}</div>
     <div class="formula">Формула: ${formula}</div>
     <div class="pianoScroll">${svg}</div>
+    ${legend}
     <div class="notesRow">${notesHtml}</div>
   `;
 }
